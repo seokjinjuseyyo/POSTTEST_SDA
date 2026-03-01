@@ -1,31 +1,31 @@
-// SOAL 1 - Analisis Kompleksitas Waktu Analisis Algoritma
+/* SOAL 1 - Analisis Kompleksitas Waktu Analisis Algoritma
 
-//Analisis untuk Tmin dan Tmax secara manual:
-//|==================================================|
-//|        Pseudocodenya       | Cost | Tmin  | Tmax |
-//|============================|======|=======|======|
-//|procedure FindMin           |  C1  |   1   |   1  |
-//|min <- A[0]                 |  C2  |   1   |   1  |
-//|for i <- 1 to n-1           |  C3  |   n   |   n  |
-//|if A[i] < min               |  C4  |  n-1  |  n-1 |
-//|min <- A[i]                 |  C5  |   0   |  n-1 |
-//|end if                      |  C6  |  n-1  |  n-1 |
-//|end for                     |  C7  |   n   |   n  |
-//|return min                  |  C8  |   1   |   1  |
-//|end procedure               |  C9  |   1   |   1  |
-//|==================================================|
+  Analisis buat nyari Tmin dan Tmax secara manual:
+  |==================================================|
+  |        Pseudocodenya       | Cost | Tmin  | Tmax |
+  |============================|======|=======|======|
+  |procedure FindMin           |  C1  |   1   |   1  |
+  |min <- A[0]                 |  C2  |   1   |   1  |
+  |for i <- 1 to n-1           |  C3  |   n   |   n  |
+  |if A[i] < min               |  C4  |  n-1  |  n-1 |
+  |min <- A[i]                 |  C5  |   0   |  n-1 |
+  |end if                      |  C6  |  n-1  |  n-1 |
+  |end for                     |  C7  |   n   |   n  |
+  |return min                  |  C8  |   1   |   1  |
+  |end procedure               |  C9  |   1   |   1  |
+  |==================================================|
 
-// Best Case (Tmin):
-// Arraynya urut naik jadi kondisi if nya itu selalu salah = C5 = 0
-// Tmin = (C3+C4+C6+C7)*n + (C1+C2+C8+C9-C4-C6)
-//      = (1+1+1+1)*n + (1+1+1+1-1-1)
-//      = 4n + 4 => O(n)
+   Best Case (Tmin):
+   Arraynya urut naik jadi kondisi if nya itu selalu salah = C5 = 0
+   Tmin = (C3+C4+C6+C7)*n + (C1+C2+C8+C9-C4-C6)
+        = (1+1+1+1)*n + (1+1+1+1-1-1)
+        = 4n + 4 => O(n)
 
-// Worst Case (Tmax):
-// Arraynya urut turun jadi kondisi if nya itu selalu benar = C5 = n-1
-// Tmax = (C3+C4+C5+C6+C7)*n + (C1+C2+C8+C9-C4-C5-C6)
-//      = (1+1+1+1+1)*n + (1+1+1+1-1-1-1)
-//      = 5n + 3 => O(n)
+   Worst Case (Tmax):
+   Arraynya urut turun jadi kondisi if nya itu selalu benar = C5 = n-1
+   Tmax = (C3+C4+C5+C6+C7)*n + (C1+C2+C8+C9-C4-C5-C6)
+        = (1+1+1+1+1)*n + (1+1+1+1-1-1-1)
+        = 5n + 3 => O(n) */
 
 
 #include <iostream>
