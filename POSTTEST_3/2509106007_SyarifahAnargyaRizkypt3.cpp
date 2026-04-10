@@ -6,7 +6,9 @@ using namespace std;
 /*Tugas nya Syarifah Anargya Rizky dengan Nim 2509106007
 dengan penugasan nomor ganjil tema pawcare petshop dan juga dokter hewan*/
 
-#define MAX 100 // kapasitas maksimum array
+#define MAX_DATA  100 // kapasitas maksimum array data hewan
+#define MAX_QUEUE 100 // kapasitas maksimum array queue
+#define MAX_STACK 100 // kapasitas maksimum array stack
 
 struct Hewan { //untuk nyimpan data hewannya
     int id; // id hewannya
@@ -16,13 +18,13 @@ struct Hewan { //untuk nyimpan data hewannya
     int harga; // harga buat perawatan hewannya
 };
 
-Hewan dataHewan[MAX]; // array buat nyimpen semua data hewan
+Hewan dataHewan[MAX_DATA]; // array buat nyimpen semua data hewan
 int jumlah = 5; // jumlah data awal
 
-Hewan queueAntrian[MAX]; // array queue nya
+Hewan queueAntrian[MAX_QUEUE]; // array queue nya
 int frontQ = -1, rearQ = -1; // penanda depan dan belakang antrian
 
-Hewan stackRiwayat[MAX]; // array stack nya
+Hewan stackRiwayat[MAX_STACK]; // array stack nya
 int topS = -1; // penanda elemen teratas stack
 
 void swapData(Hewan *a, Hewan *b) { // Fungsinya kita swap pakai pointer
@@ -31,7 +33,14 @@ void swapData(Hewan *a, Hewan *b) { // Fungsinya kita swap pakai pointer
     *b = temp;       // b nya isi dengan temp
 }
 
-void tampilHeader() { // Buat nampilin header tabel
+string toLower(string s) { // buat ubah string jadi huruf kecil semua biar search ga case-sensitive
+    for (int i = 0; i < (int)s.size(); i++)
+        if (s[i] >= 'A' && s[i] <= 'Z') // kalau huruf kapital kita geser pakai ASCII nanti
+            s[i] = s[i] + 32;
+    return s;
+}
+
+void tampilHeader() { // Buat nampilin header tabelnya
     cout << "\n===========================================================================" << endl;
     cout << "| " << left << setw(5)  << "ID"
          << "| " << setw(12) << "Nama"
@@ -54,54 +63,64 @@ void tampilSemua(Hewan* arr, int n) { // buat nampilin semua datanya
         cout << "\nBelum ada data hewan." << endl;
         return;
     }
-
     tampilHeader();
-
     for (int i = 0; i < n; i++) {
         tampilBaris(arr + i); // kita akses pakai pointer
     }
-
     cout << "===========================================================================" << endl;
 }
 
+int inputAngkaPositif(const string &label) { // buat validasi input angka, kalau bukan angka positif kita minta ulang
+    int nilai;
+    while (true) {
+        cout << label;
+        if (cin >> nilai && nilai > 0) break;
+        cout << "Input tidak valid, coba lagi!\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+    }
+    return nilai;
+}
+
+bool idSudahAda(Hewan *arr, int n, int id) { // kita cek dulu apakah ID nya sudah ada
+    for (int i = 0; i < n; i++)
+        if ((arr + i)->id == id) return true;
+    return false;
+}
+
 void tambahData(Hewan* arr, int &n) { // buat nambah data baru
+    if (n >= MAX_DATA) { // kita cek dulu kalau array sudah penuh
+        cout << "\nData sudah penuh, tidak bisa tambah lagi!\n";
+        return;
+    }
+
     int idBaru;
-    bool idAda;
-
     do { // kita validasi ID nya biar ga double
-        idAda = false;
-        cout << "ID Hewan     : "; cin >> idBaru;
-
-        for (int i = 0; i < n; i++) {
-            if (arr[i].id == idBaru) {
-                idAda = true;
-                break;
-            }
-        }
-
-        if (idAda) cout << "ID sudah ada, coba lagi!\n";
-
-    } while (idAda);
+        idBaru = inputAngkaPositif("ID Hewan     : ");
+        if (idSudahAda(arr, n, idBaru))
+            cout << "ID sudah ada, coba lagi!\n";
+    } while (idSudahAda(arr, n, idBaru));
 
     arr[n].id = idBaru; // buat input data
-    cout << "Nama Hewan   : "; cin.ignore(); getline(cin, arr[n].nama);
+    cin.ignore(); cout << "Nama Hewan   : "; getline(cin, arr[n].nama);
     cout << "Jenis Hewan  : "; getline(cin, arr[n].jenis);
     cout << "Dokter Hewan : "; getline(cin, arr[n].dokter);
-    cout << "Harga (Rp)   : "; cin >> arr[n].harga;
+    arr[n].harga = inputAngkaPositif("Harga (Rp)   : "); // kita validasi harganya juga
 
     n++; // jumlah datanya bertambah
-
     cout << "\nData berhasil ditambahkan.\n";
 }
 
 void linearSearch(Hewan* arr, int n, string cari) { // bagian linear search dan iterasinya
+    string cariLower = toLower(cari); // kita ubah dulu jadi huruf kecil biar ga masalah kapital
     bool ketemu = false;
+
     for (int i = 0; i < n; i++) { // loop buat kita cek satu-satu dari depan
 
         cout << "Iterasi ke-" << i  // buat nampilin proses tiap iterasinya
              << " -> cek: " << (arr + i)->nama << endl;
 
-        if ((arr + i)->nama == cari) { // kita cek apakah namanya itu sama
+        if (toLower((arr + i)->nama) == cariLower) { // kita cek apakah namanya itu sama
 
             cout << "\n>> Data ketemu di index ke-" << i << "!\n";
 
@@ -121,6 +140,15 @@ void linearSearch(Hewan* arr, int n, string cari) { // bagian linear search dan 
 }
 
 int fibonacciSearch(Hewan* arr, int n, int target) { // bagian fibonacci search
+    // kita bikin salinan array dulu biar data asli ga kekacau waktu diurutin
+    Hewan temp[MAX_DATA];
+    for (int i = 0; i < n; i++) temp[i] = arr[i];
+
+    // kita urutkan salinannya dulu berdasarkan ID biar bisa fibonacci search
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)
+            if (temp[j].id > temp[j + 1].id)
+                swapData(&temp[j], &temp[j + 1]);
 
     int fib2 = 0; // F(k-2)
     int fib1 = 1; // F(k-1)
@@ -139,10 +167,12 @@ int fibonacciSearch(Hewan* arr, int n, int target) { // bagian fibonacci search
 
         if (i >= n) i = n - 1;
 
-        if ((arr + i)->id == target) {
-            return i; // ketemu
+        if (temp[i].id == target) {
+            // kalau ketemu di salinan, kita cari index aslinya di arr yang asli
+            for (int k = 0; k < n; k++)
+                if (arr[k].id == target) return k;
         }
-        else if ((arr + i)->id < target) {
+        else if (temp[i].id < target) {
             fib  = fib1;
             fib1 = fib2;
             fib2 = fib - fib1;
@@ -155,8 +185,12 @@ int fibonacciSearch(Hewan* arr, int n, int target) { // bagian fibonacci search
         }
     }
 
-    if (fib1 && (arr + offset + 1)->id == target)
-        return offset + 1;
+    if (fib1) {
+        int idx = offset + 1;
+        if (idx < n && temp[idx].id == target)
+            for (int k = 0; k < n; k++)
+                if (arr[k].id == target) return k;
+    }
 
     return -1;
 }
@@ -164,39 +198,33 @@ int fibonacciSearch(Hewan* arr, int n, int target) { // bagian fibonacci search
 void bubbleSort(Hewan* arr, int n) { // ini proses bubble Sort buat nama a-z
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
-
-            if (arr[j].nama > arr[j + 1].nama) { // kita bandingkan namanya
+            if (toLower(arr[j].nama) > toLower(arr[j + 1].nama)) { // kita bandingkan namanya
                 swapData(&arr[j], &arr[j + 1]);
             }
         }
     }
-
     cout << "\nData sudah diurutkan berdasarkan nama.\n";
     tampilSemua(arr, n);
 }
 
 void selectionSort(Hewan* arr, int n) { // ini proses selection sortnya
     for (int i = 0; i < n - 1; i++) {
-
         int idxMin = i;
-
         for (int j = i + 1; j < n; j++) {
             if (arr[j].harga < arr[idxMin].harga) {
                 idxMin = j;
             }
         }
-
         if (idxMin != i) {
             swapData(&arr[i], &arr[idxMin]);
         }
     }
-
     cout << "\nData sudah diurutkan berdasarkan harga.\n";
     tampilSemua(arr, n);
 }
 
 bool isQueueFull() { // cek apakah antrian sudah penuh
-    return rearQ == MAX - 1;
+    return rearQ == MAX_QUEUE - 1;
 }
 
 bool isQueueEmpty() { // cek apakah antrian kosong
@@ -243,7 +271,7 @@ void tampilAntrian() { // buat nampilin semua isi antrian
     cout << "\n===== ANTRIAN PEMERIKSAAN HEWAN =====\n";
     tampilHeader();
 
-    for (int i = frontQ; i <= rearQ; i++) { // iterasi pakai pointer 
+    for (int i = frontQ; i <= rearQ; i++) { // iterasi pakai pointer
         tampilBaris(queueAntrian + i);
     }
 
@@ -252,7 +280,7 @@ void tampilAntrian() { // buat nampilin semua isi antrian
 }
 
 bool isStackFull() { // cek apakah stack sudah penuh
-    return topS == MAX - 1;
+    return topS == MAX_STACK - 1;
 }
 
 bool isStackEmpty() { // cek apakah stack kosong
@@ -260,19 +288,19 @@ bool isStackEmpty() { // cek apakah stack kosong
 }
 
 void pushRiwayat(Hewan* h) { // buat nyimpen tindakan ke riwayat
-    if (isStackFull()) { // kalau stack penuh 
+    if (isStackFull()) { // kalau stack penuh
         cout << "\nRiwayat sudah penuh!\n";
         return;
     }
 
     topS++; // naikan top dulu
-    *(stackRiwayat + topS) = *h; // salin data hewan pakai  pointer
+    *(stackRiwayat + topS) = *h; // salin data hewan pakai pointer
 
     cout << "\nTindakan untuk '" << h->nama << "' (ID: " << h->id << ") berhasil dicatat ke riwayat.\n";
 }
 
 void popRiwayat() { // buat hapus tindakan terakhir dari riwayat
-    if (isStackEmpty()) { // kalau stack kosong 
+    if (isStackEmpty()) { // kalau stack kosong
         cout << "\nRiwayat kosong, tidak ada tindakan yang bisa dibatalkan!\n";
         return;
     }
@@ -297,7 +325,7 @@ void peekQueueStack() { // buat lihat terdepan antrian dan teratas riwayat tanpa
     }
 
     if (!isStackEmpty()) { // cek dulu apakah riwayat ada isinya
-        cout << "\n Tindakan Terakhir]:\n";
+        cout << "\n[Tindakan Terakhir]:\n";
         tampilHeader();
         tampilBaris(stackRiwayat + topS); // lihat topnya aja tanpa hapus
         cout << "===========================================================================" << endl;
@@ -315,7 +343,7 @@ void tampilRiwayat() { // buat nampilin semua isi riwayat tindakan
     cout << "\n=====          RIWAYAT TINDAKAN MEDIS          =====\n";
     tampilHeader();
 
-    for (int i = topS; i >= 0; i--) { // iterasi dari top ke bawah pakai pointer 
+    for (int i = topS; i >= 0; i--) { // iterasi dari top ke bawah pakai pointer
         tampilBaris(stackRiwayat + i);
     }
 
@@ -331,9 +359,7 @@ void daftarAntrian(Hewan* arr, int n) { // buat milih hewan dari data lalu didaf
 
     tampilSemua(arr, n); // tampil dulu semua data biar bisa pilih
 
-    int idCari;
-    cout << "Masukkan ID hewan yang ingin didaftarkan ke antrian: ";
-    cin >> idCari;
+    int idCari = inputAngkaPositif("Masukkan ID hewan yang ingin didaftarkan ke antrian: ");
 
     bool ketemu = false;
     for (int i = 0; i < n; i++) {
@@ -355,9 +381,7 @@ void catatRiwayat(Hewan* arr, int n) { // buat milih hewan dari data lalu dicata
 
     tampilSemua(arr, n); // tampil dulu semua data biar bisa pilih
 
-    int idCari;
-    cout << "Masukkan ID hewan yang ingin dicatat tindakannya: ";
-    cin >> idCari;
+    int idCari = inputAngkaPositif("Masukkan ID hewan yang ingin dicatat tindakannya: ");
 
     bool ketemu = false;
     for (int i = 0; i < n; i++) {
@@ -404,6 +428,14 @@ int main() { // ini main nya
         cout << "================================================" << endl;
         cout << "Pilihan: "; cin >> pilihan;
 
+        if (!(cin)) { // kalau input bukan angka kita minta ulang
+            cin.clear();
+            cin.ignore(1000, '\n');
+            cout << "\nPilihan tidak valid.\n";
+            pilihan = 0;
+            continue;
+        }
+
         if (pilihan == 1) {
             tampilSemua(dataHewan, jumlah);
         }
@@ -417,15 +449,8 @@ int main() { // ini main nya
             linearSearch(dataHewan, jumlah, cari);
         }
         else if (pilihan == 4) {
-
-            for (int i = 0; i < jumlah - 1; i++) // kita urutkan dulu berdasarkan ID
-                for (int j = 0; j < jumlah - i - 1; j++)
-                    if (dataHewan[j].id > dataHewan[j + 1].id)
-                        swapData(&dataHewan[j], &dataHewan[j + 1]);
-
-            int idCari;
-            cout << "ID yang dicari: "; cin >> idCari;
-
+            // kita langsung cari pakai fibonacci, data asli ga diurutkan karena sortingnya di dalam fungsi pakai salinan
+            int idCari = inputAngkaPositif("ID yang dicari: ");
             int hasil = fibonacciSearch(dataHewan, jumlah, idCari);
 
             if (hasil != -1) {
