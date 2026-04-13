@@ -6,7 +6,9 @@ using namespace std;
 /*Tugas nya Syarifah Anargya Rizky dengan Nim 2509106007
 dengan penugasan nomor ganjil tema pawcare petshop dan juga dokter hewan*/
 
-#define MAX_DATA 100 // kapasitas maksimum array data hewan
+#define MAX_DATA  100 // kapasitas maksimum array data hewan
+#define MAX_QUEUE 100 // kapasitas maksimum array queue
+#define MAX_STACK 100 // kapasitas maksimum array stack
 
 struct Hewan { //untuk nyimpan data hewannya
     int id; // id hewannya
@@ -16,25 +18,16 @@ struct Hewan { //untuk nyimpan data hewannya
     int harga; // harga buat perawatan hewannya
 };
 
-struct NodeQ { // node buat queue antrian
-    Hewan data; // data hewannya
-    NodeQ* next; // pointer ke node berikutnya
-};
-
-struct NodeS { // node buat stack riwayat
-    Hewan data; // data hewannya
-    NodeS* next; // pointer ke node berikutnya
-};
-
 Hewan dataHewan[MAX_DATA]; // array buat nyimpen semua data hewan
 int jumlah = 5; // jumlah data awal
 
-NodeQ* frontQ = nullptr; // penanda node terdepan antrian
-NodeQ* rearQ  = nullptr; // penanda node terbelakang antrian
+Hewan queueAntrian[MAX_QUEUE]; // array queue nya
+int frontQ = -1, rearQ = -1; // penanda depan dan belakang antrian
 
-NodeS* topS = nullptr; // penanda node teratas stack
+Hewan stackRiwayat[MAX_STACK]; // array stack nya
+int topS = -1; // penanda elemen teratas stack
 
-void swapData(Hewan* a, Hewan* b) { // Fungsinya kita swap pakai pointer
+void swapData(Hewan *a, Hewan *b) { // Fungsinya kita swap pakai pointer
     Hewan temp = *a; // buat nyimpan data a
     *a = *b;         // a nya isi dengan b
     *b = temp;       // b nya isi dengan temp
@@ -89,7 +82,7 @@ int inputAngkaPositif(const string &label) { // buat validasi input angka, kalau
     return nilai;
 }
 
-bool idSudahAda(Hewan* arr, int n, int id) { // kita cek dulu apakah ID nya sudah ada
+bool idSudahAda(Hewan *arr, int n, int id) { // kita cek dulu apakah ID nya sudah ada
     for (int i = 0; i < n; i++)
         if ((arr + i)->id == id) return true;
     return false;
@@ -230,43 +223,43 @@ void selectionSort(Hewan* arr, int n) { // ini proses selection sortnya
     tampilSemua(arr, n);
 }
 
+bool isQueueFull() { // cek apakah antrian sudah penuh
+    return rearQ == MAX_QUEUE - 1;
+}
+
 bool isQueueEmpty() { // cek apakah antrian kosong
-    return frontQ == nullptr;
+    return frontQ == -1 || frontQ > rearQ;
 }
 
 void enqueue(Hewan* h) { // buat nambahin hewan ke antrian
-    NodeQ* nodeBaru = new NodeQ; // buat node baru dulu pakai dynamic memory
-    nodeBaru->data = *h;         // salin data hewan ke node baru pakai dereferensi
-    nodeBaru->next = nullptr;    // next nya kita set null karena dia paling belakang
-
-    if (isQueueEmpty()) { // kalau antrian kosong, front dan rear sama-sama nunjuk ke node yang baru
-        frontQ = nodeBaru;
-        rearQ  = nodeBaru;
-    } else {
-        rearQ->next = nodeBaru; // sambungin node terakhir ke node baru
-        rearQ = nodeBaru;       // geser rear ke node baru
+    if (isQueueFull()) { // kalau antrian penuh ya overflow
+        cout << "\n[OVERFLOW] Antrian sudah penuh!\n";
+        return;
     }
+
+    if (frontQ == -1) frontQ = 0; // kalau elemen pertama masuk kita set front nya ke 0
+
+    rearQ++; // geser rear ke kanan buat tempat elemen baru
+    *(queueAntrian + rearQ) = *h; // kita salin data hewan pakai dereferensi pointer
 
     cout << "\nHewan '" << h->nama << "' (ID: " << h->id << ") berhasil didaftarkan ke antrian.\n";
 }
 
 void dequeue() { // buat manggil hewan terdepan dari antrian
-    if (isQueueEmpty()) { // kalau antrian kosong kita kasih pesan underflow
-        cout << "\nAntrian kosong, tidak ada hewan yang bisa dipanggil!\n";
+    if (isQueueEmpty()) { // kalau antrian kosong
+        cout << "\n Antrian kosong, tidak ada hewan yang bisa dipanggil!\n";
         return;
     }
 
-    NodeQ* dipanggil = frontQ; // simpan dulu pointer ke node terdepan
+    Hewan* dipanggil = queueAntrian + frontQ; // ambil hewan paling depan pakai pointer
 
-    cout << "\n>> Memanggil pasien: " << dipanggil->data.nama << " (ID: " << dipanggil->data.id << ")" << endl;
-    cout << "   Jenis  : " << dipanggil->data.jenis << endl;
-    cout << "   Dokter : " << dipanggil->data.dokter << endl;
+    cout << "\n>> Memanggil pasien: " << dipanggil->nama << " (ID: " << dipanggil->id << ")" << endl;
+    cout << "   Jenis  : " << dipanggil->jenis << endl;
+    cout << "   Dokter : " << dipanggil->dokter << endl;
 
-    frontQ = frontQ->next; // geser front ke node berikutnya
+    frontQ++; // geser front ke kanan karena sudah dipanggil
 
-    if (frontQ == nullptr) rearQ = nullptr; // kalau antrian jadi kosong, rear juga kita null kan
-
-    delete dipanggil; // hapus node yang sudah dipanggil 
+    if (isQueueEmpty()) frontQ = rearQ = -1; // reset kalau antrian jadi kosong
 }
 
 void tampilAntrian() { // buat nampilin semua isi antrian
@@ -278,64 +271,66 @@ void tampilAntrian() { // buat nampilin semua isi antrian
     cout << "\n===== ANTRIAN PEMERIKSAAN HEWAN =====\n";
     tampilHeader();
 
-    NodeQ* temp = frontQ; // mulai traversal dari front yaa
-    int total = 0;
-    while (temp != nullptr) { // kita jalan terus sampai node terakhir
-        tampilBaris(&temp->data); // kita kirim alamat data nya pakai &
-        temp = temp->next;
-        total++;
+    for (int i = frontQ; i <= rearQ; i++) { // iterasi pakai pointer
+        tampilBaris(queueAntrian + i);
     }
 
     cout << "===========================================================================" << endl;
-    cout << "Total antrian: " << total << " hewan\n";
+    cout << "Total antrian: " << (rearQ - frontQ + 1) << " hewan\n";
+}
+
+bool isStackFull() { // cek apakah stack sudah penuh
+    return topS == MAX_STACK - 1;
 }
 
 bool isStackEmpty() { // cek apakah stack kosong
-    return topS == nullptr;
+    return topS < 0;
 }
 
 void pushRiwayat(Hewan* h) { // buat nyimpen tindakan ke riwayat
-    NodeS* nodeBaru = new NodeS; // buat node baru
-    nodeBaru->data = *h;         // salin data hewan ke node baru pakai dereferensi
-    nodeBaru->next = topS;       // node baru nunjuk ke top yang lama (addFirst style)
-    topS = nodeBaru;             // top sekarang jadi node baru
+    if (isStackFull()) { // kalau stack penuh
+        cout << "\nRiwayat sudah penuh!\n";
+        return;
+    }
+
+    topS++; // naikan top dulu
+    *(stackRiwayat + topS) = *h; // salin data hewan pakai pointer
 
     cout << "\nTindakan untuk '" << h->nama << "' (ID: " << h->id << ") berhasil dicatat ke riwayat.\n";
 }
 
 void popRiwayat() { // buat hapus tindakan terakhir dari riwayat
-    if (isStackEmpty()) { // kalau stack kosong kita kasih pesan underflow
+    if (isStackEmpty()) { // kalau stack kosong
         cout << "\nRiwayat kosong, tidak ada tindakan yang bisa dibatalkan!\n";
         return;
     }
 
-    NodeS* terakhir = topS; // simpan dulu pointer ke top
+    Hewan* terakhir = stackRiwayat + topS; // ambil elemen teratas pakai pointer
 
-    cout << "\n>> Tindakan terakhir dibatalkan: " << terakhir->data.nama << " (ID: " << terakhir->data.id << ")\n";
+    cout << "\n>> Tindakan terakhir dibatalkan: " << terakhir->nama << " (ID: " << terakhir->id << ")\n";
 
-    topS = topS->next; // geser top ke node di bawahnya
-    delete terakhir;   // hapus node teratas yang sudah dibatalkan
+    topS--; // turunkan top, data kita anggap sudah dihapus
 }
 
 void peekQueueStack() { // buat lihat terdepan antrian dan teratas riwayat tanpa hapus
     cout << "\n=====   ANTRIAN & RIWAYAT    =====\n";
 
     if (!isQueueEmpty()) { // cek dulu apakah antrian ada isinya
-        cout << "\nPasien Terdepan:\n";
+        cout << "\n[QUEUE - Pasien Terdepan]:\n";
         tampilHeader();
-        tampilBaris(&frontQ->data); // lihat data front nya aja tanpa hapus
+        tampilBaris(queueAntrian + frontQ); // lihat frontnya aja tanpa hapus
         cout << "===========================================================================" << endl;
     } else {
-        cout << "\nAntrian kosong.\n";
+        cout << "\n Antrian kosong.\n";
     }
 
     if (!isStackEmpty()) { // cek dulu apakah riwayat ada isinya
-        cout << "\nTindakan Terakhir:\n";
+        cout << "\n[Tindakan Terakhir]:\n";
         tampilHeader();
-        tampilBaris(&topS->data); // lihat data top nya aja tanpa hapus
+        tampilBaris(stackRiwayat + topS); // lihat topnya aja tanpa hapus
         cout << "===========================================================================" << endl;
     } else {
-        cout << "\nRiwayat masih kosong.\n";
+        cout << "\n Riwayat masih kosong.\n";
     }
 }
 
@@ -348,16 +343,12 @@ void tampilRiwayat() { // buat nampilin semua isi riwayat tindakan
     cout << "\n=====          RIWAYAT TINDAKAN MEDIS          =====\n";
     tampilHeader();
 
-    NodeS* temp = topS; // mulai traversal dari top
-    int total = 0;
-    while (temp != nullptr) { // jalan terus sampai node paling bawah
-        tampilBaris(&temp->data); // kita kirim alamat data nya pakai &
-        temp = temp->next;
-        total++;
+    for (int i = topS; i >= 0; i--) { // iterasi dari top ke bawah pakai pointer
+        tampilBaris(stackRiwayat + i);
     }
 
     cout << "===========================================================================" << endl;
-    cout << "Total riwayat: " << total << " tindakan\n";
+    cout << "Total riwayat: " << (topS + 1) << " tindakan\n";
 }
 
 void daftarAntrian(Hewan* arr, int n) { // buat milih hewan dari data lalu didaftarkan ke antrian
@@ -379,7 +370,7 @@ void daftarAntrian(Hewan* arr, int n) { // buat milih hewan dari data lalu didaf
         }
     }
 
-    if (!ketemu) cout << "\nID yang anda cari tidak ditemukan.\n";
+    if (!ketemu) cout << "\nID tidak ditemukan.\n";
 }
 
 void catatRiwayat(Hewan* arr, int n) { // buat milih hewan dari data lalu dicatat ke riwayat
@@ -401,7 +392,7 @@ void catatRiwayat(Hewan* arr, int n) { // buat milih hewan dari data lalu dicata
         }
     }
 
-    if (!ketemu) cout << "\nID yang anda cari tidak ditemukan.\n";
+    if (!ketemu) cout << "\nID tidak ditemukan.\n";
 }
 
 int main() { // ini main nya
@@ -416,35 +407,31 @@ int main() { // ini main nya
 
     do {
         cout << "\n================================================" << endl;
-        cout << "||        MANAGEMENT PAWCARE PETSHOP          ||" << endl;
+        cout << "||       MANAGEMENT PAWCARE PETSHOP          ||" << endl;
         cout << "================================================" << endl;
-        cout << "||                                            ||" << endl;
-        cout << "||                DATA HEWAN                  ||" << endl;
-        cout << "||  1.  Tampil Semua Data Hewan               ||" << endl;
-        cout << "||  2.  Tambah Data Hewan Baru                ||" << endl;
-        cout << "||  3.  Cari Berdasarkan Nama                 ||" << endl;
-        cout << "||  4.  Cari Berdasarkan ID                   ||" << endl;
-        cout << "||  5.  Urutkan Berdasarkan Nama              ||" << endl;
-        cout << "||  6.  Urutkan Berdasarkan Harga             ||" << endl;
-        cout << "||                                            ||" << endl;
-        cout << "||             ANTRIAN & RIWAYAT              ||" << endl;
-        cout << "||                                            ||" << endl;
-        cout << "||  7.  Daftarkan Hewan ke Antrian            ||" << endl;
-        cout << "||  8.  Panggil Pasien Terdepan               ||" << endl;
-        cout << "||  9.  Tampil Semua Antrian                  ||" << endl;
-        cout << "||  10. Catat Tindakan ke Riwayat             ||" << endl;
-        cout << "||  11. Batalkan Tindakan Terakhir            ||" << endl;
-        cout << "||  12. Tampil Semua Riwayat                  ||" << endl;
-        cout << "||  13. Peek Antrian & Riwayat                ||" << endl;
-        cout << "||  14. Keluar                                ||" << endl;
-        cout << "||                                            ||" << endl;
+        cout << "||               DATA HEWAN                  ||" << endl;
+        cout << "|| 1.  Tampil Semua Data Hewan               ||" << endl;
+        cout << "|| 2.  Tambah Data Hewan Baru                ||" << endl;
+        cout << "|| 3.  Cari Berdasarkan Nama                 ||" << endl;
+        cout << "|| 4.  Cari Berdasarkan ID                   ||" << endl;
+        cout << "|| 5.  Urutkan Berdasarkan Nama              ||" << endl;
+        cout << "|| 6.  Urutkan Berdasarkan Harga             ||" << endl;
+        cout << "||            ANTRIAN & RIWAYAT              ||" << endl;
+        cout << "|| 7.  Daftarkan Hewan ke Antrian            ||" << endl;
+        cout << "|| 8.  Panggil Pasien Terdepan               ||" << endl;
+        cout << "|| 9.  Tampil Semua Antrian                  ||" << endl;
+        cout << "|| 10. Catat Tindakan ke Riwayat             ||" << endl;
+        cout << "|| 11. Batalkan Tindakan Terakhir            ||" << endl;
+        cout << "|| 12. Tampil Semua Riwayat                  ||" << endl;
+        cout << "|| 13. Peek Antrian & Riwayat                ||" << endl;
+        cout << "|| 14. Keluar                                ||" << endl;
         cout << "================================================" << endl;
         cout << "Pilihan: "; cin >> pilihan;
 
         if (!(cin)) { // kalau input bukan angka kita minta ulang
             cin.clear();
             cin.ignore(1000, '\n');
-            cout << "\nPilihan kamu tidak valid.\n";
+            cout << "\nPilihan tidak valid.\n";
             pilihan = 0;
             continue;
         }
@@ -467,7 +454,7 @@ int main() { // ini main nya
             int hasil = fibonacciSearch(dataHewan, jumlah, idCari);
 
             if (hasil != -1) {
-                cout << "\nData sudah ketemu!\n";
+                cout << "\nData ketemu!\n";
                 tampilHeader();
                 tampilBaris(&dataHewan[hasil]);
                 cout << "===============================================================================" << endl;
@@ -482,22 +469,22 @@ int main() { // ini main nya
             selectionSort(dataHewan, jumlah);
         }
         else if (pilihan == 7) {
-            daftarAntrian(dataHewan, jumlah); // kita panggil fungsi daftar antrian
+            daftarAntrian(dataHewan, jumlah); // panggil fungsi daftar antrian
         }
         else if (pilihan == 8) {
-            dequeue(); // kita panggil pasien terdepan
+            dequeue(); // panggil pasien terdepan
         }
         else if (pilihan == 9) {
-            tampilAntrian(); // tampilin semua antrian
+            tampilAntrian(); // tampil semua antrian
         }
         else if (pilihan == 10) {
-            catatRiwayat(dataHewan, jumlah); // kita panggil fungsi catat riwayat
+            catatRiwayat(dataHewan, jumlah); // panggil fungsi catat riwayat
         }
         else if (pilihan == 11) {
             popRiwayat(); // batalkan tindakan terakhir
         }
         else if (pilihan == 12) {
-            tampilRiwayat(); // tampilin semua riwayat
+            tampilRiwayat(); // tampil semua riwayat
         }
         else if (pilihan == 13) {
             peekQueueStack(); // peek antrian dan riwayat
