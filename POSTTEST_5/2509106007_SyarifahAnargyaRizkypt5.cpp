@@ -54,7 +54,7 @@ void tampilkanStokSembako(BarangNode* head) {
 
     BarangNode* temp = head; // Pointer sementara dimulai dari head
 
-    // Pakai do-while biar node head ikut tercetak sebelum kondisinya dicek
+    // Pakai do - while biar node head ikut tercetak sebelum kondisinya dicek
     do {
         cout << "- " << temp->namaBarang << ": " << temp->stok << endl; // Cetak nama dan stok barangnya
         temp = temp->next; // Kita pindah ke node berikutnya
